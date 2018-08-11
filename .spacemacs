@@ -16,7 +16,7 @@ values."
    ;; and `nil'. `unused' will lazy install only unused layers (i.e. layers
    ;; not listed in variable `dotspacemacs-configuration-layers'), `all' will
    ;; lazy install any layer that support lazy installation even the layers
-   ;; listed in `dotspacemacs-configuration-layers'. `nil' disable the work with glfw lazy
+   ;; listed in `dotspacemacs-configuration-layers'. `nil' dligaturesisable the work with glfw lazy
    ;; installation feature and you have to explicitly list a layer in the
    ;; variable `dotspacemacs-configuration-layers' to install it.
    ;; (default 'unused)
@@ -45,7 +45,6 @@ values."
                       auto-completion-enable-sort-by-usage t
                       auto-completion-enable-snippets-in-popup nil)
      better-defaults
-     bibtex
      games
      git
      vimscript
@@ -54,7 +53,7 @@ values."
                ;; use the actual wakatime path
                wakatime-cli-path "/usr/local/bin/wakatime")
      (c-c++ :variables c-c++-default-mode-for-headers 'c++-mode
-             c-c++-enable-clang-support t)
+            c-c++-enable-clang-support t)
      (colors :variables
              colors-enable-rainbow-identifiers nil
              colors-enable-nyan-cat-progress-bar nil)
@@ -62,21 +61,15 @@ values."
      deft
      emacs-lisp
      github
-     html
      imenu-list
      markdown
-     org
-     osx
      shaders
-     pdf-tools
-     python
      (ranger :variables
              ranger-cleanup-on-disable t
              ranger-show-preview t)
      search-engine
      semantic
      shell
-     helm
      ;; spell-checking
      syntax-checking
      swift
@@ -84,14 +77,15 @@ values."
      cscope
      version-control
      gtags
-     ;; ycmd
+     ;;ycmd
   )
    ;; List of additional packages that will be installed without being
    ;; wrapped in a layer. If you need some configuration for these
    ;; packages, then consider creating a layer. You can also put the
    ;; configuration in `dotspacemacs/user-config'.
    dotspacemacs-additional-packages '(beacon
-                                      company-ycmd
+                                      ;;company-ycmd
+                                      disaster
                                       all-the-icons
                                       speed-type
                                       doom-themes)
@@ -160,23 +154,27 @@ values."
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(;; doom-spacegrey
                          ;; badwolf
-                         doom-one
-                         spacemacs-dark
-                         spacemacs-light)
+                         ;; doom-one
+                         zenburn
+                          dracula
+                         ;; doom-peacock
+                         ;; doom-spacegrey
+                          spacemacs-dark
+                          spacemacs-light)
                          ;; solarized-light
                          ;; solarized-dark
                          ;; leuven
                          ;; monoka
-                         ;; zenburn
+                         ;; zenburn 
    ;; If non nil the cursor color matches the state color in GUI Emacs.
    dotspacemacs-colorize-cursor-according-to-state t
    ;; Default font, or prioritized list of fonts. `powerline-scale' allows to
    ;; quickly tweak the mode-line size to make separators look not too crappy.
-   dotspacemacs-default-font '("Fira Code Medium"
+   dotspacemacs-default-font '("Source Code Pro Medium"
                                :size 17
                                :weight normal
                                :width normal
-                               :powerline-scale 1.2)
+                               :powerline-scale 0.8)
    ;; The leader key
    dotspacemacs-leader-key "SPC"
    ;; The leader key accessible in `emacs state' and `insert state'
@@ -342,6 +340,11 @@ you should place your code here."
 
   (setq neo-theme 'icons)
 
+  (require 'disaster)
+
+    ;; set powerline otions
+  (setq powerline-default-separator 'arrow)
+
   (setq undo-tree-auto-save-history t
         undo-tree-history-directory-alist
         `(("." . ,(concat spacemacs-cache-directory "undo"))))
@@ -354,57 +357,7 @@ you should place your code here."
   (setq ad-redefinition-action 'accept)
   (evil-ex-define-cmd "W[rite]" 'evil-write)
 
-
-  (cond
-   ((spacemacs/system-is-mac)
-    (setq TeX-view-program-selection '((output-pdf "Skim"))))
-   ((spacemacs/system-is-linux)
-    (setq TeX-view-program-selection '((output-pdf "Zathura")
-                                       (output-pdf "PDF Tools")))))
-  (setq TeX-view-program-list
-        '(("Okular" "okular --unique %o#src:%n`pwd`/./%b")
-          ("Skim" "displayline -b -g %n %o %b")
-          ("Zathura"
-           ("zathura %o"
-            (mode-io-correlate
-             " --synctex-forward %n:0:%b -x \"emacsclient +%{line} %{input}\"")))))
-  (setq-default TeX-master "main")
-
   (beacon-mode 1)
-
-  ;; markdown
-  (add-hook 'markdown-mode-hook 'turn-on-orgtbl)
-  (setq markdown-command "/usr/bin/pandoc")
-
-  ;; org
-  (setq ort-directory "~/Dropbox/org")
-  (setq org-agenda-files (list "~/Dropbox/org/tasks.org"))
-  (setq org-bullets-bullet-list '("◉" "○" "✸" "•"))
-  (setq org-file-apps '(("pdf" . "open %s")))
-  (setq org-latex-listings 'minted)
-  (setq org-beamer-outline-frame-options "allowframebreaks=0.9")
-  ;; (setq org-beamer-frame-default-options "allowframebreaks")
-  (setq org-latex-pdf-process
-        '("latexmk -xelatex -latexoption=\"-shell-escape -interaction=nonstopmode -synctex=1\" -output-directory=%o %f"))
-  (require 'org-protocol)
-  (defadvice org-capture
-      (after make-full-window-frame activate)
-    "Advise capture to be the only window when used as a popup"
-    (if (equal "emacs-capture" (frame-parameter nil 'name))
-        (delete-other-windows)))
-
-  (defadvice org-capture-finalize
-      (after delete-capture-frame activate)
-    "Advise capture-finalize to close the frame"
-    (if (equal "emacs-capture" (frame-parameter nil 'name))
-        (delete-frame)))
-
-  ;; Capture Templates
-  ;; Add idea, mind-onanism, contacts, movies to download das
-  (setq org-capture-templates
-        '(("l" "Temp Links from the interwebs" item
-           (file+headline "links.org" "Temporary Links")
-           "%?\nEntered on %U\n \%i\n %a")))
 
   ;; ycmd
   ;; (cond
@@ -421,11 +374,11 @@ you should place your code here."
   (setq ac-delay 0)
 
 
-  ; c-c++
+  ;; ; c-c++
   (add-hook 'c++-mode-hook (lambda ()
                              (setq flycheck-checker 'c/c++-clang)
-                             (setq flycheck-gcc-language-standard "c++1z")
-                             (setq flycheck-clang-language-standard "c++1z")))
+                             (setq flycheck-gcc-language-standard "c++17")
+                             (setq flycheck-clang-language-standard "c++17")))
 
 
    (add-hook 'c++-mode-hook
@@ -440,15 +393,71 @@ you should place your code here."
                            "/usr/include/c++/7/")
               ))
 
+   (add-hook 'c-mode-common-hook
+             (lambda ()
+                (defun stels-header-format ()
+                   "Format the given file as a header file."
+				     (interactive)
+				     (setq BaseFileName (file-name-sans-extension (file-name-nondirectory buffer-file-name)))
+				     (setq BaseFileNameExt (file-name-nondirectory buffer-file-name))
+				     (insert "#if !defined(")
+				     (push-mark)
+				     (insert BaseFileName)
+				     (upcase-region (mark) (point))
+				     (pop-mark)
+				     (insert "_H)\n")
+				     (insert "/* ========================================================================\n")
+				     (insert (format "   $File: %s $\n" BaseFileNameExt))
+				     (insert (format "   $Date: %s $\n" (current-time-string)))
+				     (insert "   $Revision: $\n")
+				     (insert "   $Creator: Ro Stelmach $\n")
+				     (insert "   $Notice: (C) Copyright 2018 by Ro Orestis Stelmach. All Rights Reserved. $\n")
+				     (insert "   ======================================================================== */\n")
+				     (insert "\n")
+				     (insert "#define ")
+				     (push-mark)
+				     (insert BaseFileName)
+				     (upcase-region (mark) (point))
+				     (pop-mark)
+				     (insert "_H\n")
+     (insert "#endif")
+                  )
+
+                  (defun stels-source-format ()
+                    "Format the given file as a source file."
+                    (interactive)
+                    (setq BaseFileName (file-name-sans-extension (file-name-nondirectory buffer-file-name)))
+                    (setq BaseFileNameExt (file-name-nondirectory buffer-file-name))
+                    (insert "/* ========================================================================\n")
+                    (insert (format "   $File: %s $\n" BaseFileNameExt))
+				    (insert (format "   $Date: %s $\n" (current-time-string)))
+                    (insert "   $Revision: $\n")
+                    (insert "   $Creator: Ro Stelmach $\n")
+                    (insert "   $Notice: (C) Copyright 2018 by Ro Orestis Stelmach. All Rights Reserved. $\n")
+                    (insert "   ======================================================================== */\n")
+                  )
+
+                  (cond ((file-exists-p buffer-file-name) t)
+                        ((string-match "[.]h" buffer-file-name) (stels-header-format))
+                        ((string-match "[.]hh" buffer-file-name) (stels-header-format))
+                        ((string-match "[.]hpp" buffer-file-name) (stels-header-format))
+                        ((string-match "[.]c" buffer-file-name) (stels-source-format))
+                        ((string-match "[.]cc" buffer-file-name) (stels-source-format))
+                        ((string-match "[.]cpp" buffer-file-name) (stels-source-format))
+                        )
+                  ))
+
 
   (global-set-key [C-M-tab] 'clang-format-region)
   (add-hook 'c++-mode-hook 'clang-format-bindings)
   (defun clang-format-bindings ()
     (define-key c++-mode-map [tab] 'clang-format-buffer))
-  ;;'(safe-local-variable-values (quote ((TeX-command-extra-options . "-shell-escape")))))
+ ;; '(safe-local-variable-values (quote ((TeX-command-extra-options . "-shell-escape")))))
 
   (setq-default helm-make-build-dir "build")
-)
+
+
+  )
 
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
