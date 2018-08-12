@@ -62,6 +62,7 @@ values."
      emacs-lisp
      github
      imenu-list
+     (org :variables org-projectile-file "~/Org/todos.org")
      markdown
      shaders
      (ranger :variables
@@ -77,6 +78,7 @@ values."
      cscope
      version-control
      gtags
+     shaders
      ;;ycmd
   )
    ;; List of additional packages that will be installed without being
@@ -155,7 +157,7 @@ values."
    dotspacemacs-themes '(;; doom-spacegrey
                          ;; badwolf
                          ;; doom-one
-                         zenburn
+                         ;; zenburn
                           dracula
                          ;; doom-peacock
                          ;; doom-spacegrey
@@ -324,6 +326,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq-default c-default-style "bsd")
   (setq-default c-basic-offset 4)
   (setq-default tab-width 4)
+
   )
 
 (defun dotspacemacs/user-config ()
@@ -337,6 +340,8 @@ you should place your code here."
   (setq-default
    beacon-blink-when-focused t
    beacon-blink-when-point-moves-vertically 5)
+
+  (setq-default helm-make-build-dir "cmake-build-debug")
 
   (setq neo-theme 'icons)
 
@@ -357,6 +362,92 @@ you should place your code here."
   (setq ad-redefinition-action 'accept)
   (evil-ex-define-cmd "W[rite]" 'evil-write)
 
+ ;; org-mode configuration
+  (setq org-agenda-files
+        (append '("~/Org/hsph.org"
+                  "~/Org/meetings.org"
+                  "~/Org/tickler.org"
+                  "~/Org/social.org"
+                  "~/Org/todos.org"
+                  "~/Org/inbox.org")
+                (file-expand-wildcards "~/Org/projects/*/*.org")
+                (file-expand-wildcards "~/Org/software/*/*.org")
+                (file-expand-wildcards "~/cache/hsph/*/org/*.org")))
+  (setq org-agenda-skip-scheduled-if-done t)
+  (setq org-agenda-skip-deadline-if-done t)
+  (setq org-todo-keywords
+        '((sequence "TODO(t)" "WAITING(w)" "SOMEDAY(.)" "|" "DONE(x!)" "CANCELLED(c@)")
+          (sequence "NEXT(n)" "|" "DONE(x!)" "CANCELLED(c@)")
+          (sequence "MEET(m)" "|" "COMPLETE(x)")
+          (sequence "TALK(T)")
+          (sequence "BUG(b)" "|" "FIXED(f)")
+          (sequence "READ(r)" "|" "DONE(x!)")
+          (sequence "TODELEGATE(-)" "DELEGATED(d)" "COMPLETE(x)")))
+  (setq org-stuck-projects '("+@project/-MAYBE-DONE" ("NEXT" "WAITING" "DELEGATED")))
+  (setq org-tags-exclude-from-inheritance '("@project"))
+
+  ;; act as a day planner
+  (setq org-agenda-start-on-weekday nil)
+
+ ;; stuff for GTD
+  (setq org-agenda-custom-commands
+        '(("W" "Weekly Review"
+           ((agenda "" ((org-agenda-span 7)
+                        (org-agenda-start-day "-7d")
+                        (org-agenda-entry-types '(:timestamp))
+                        (org-agenda-show-log t)))
+            (stuck "")
+            (todo "TODO")  ;; review what is next
+            (todo "DELEGATED|WAITING") ;; projects we are waiting on
+            (tags "PROJECT") ;; review all projects
+            (tags "SOMEDAY"))) ;; review someday/maybe items
+
+          ("D" "Daily review"
+           ((agenda "" ((org-agenda-span 7)))
+            (stuck "")
+            (todo "NEXT")
+            (todo "DELEGATED|WAITING") ;; projects we are waiting on
+            (tags "@inbox")
+            (tags "@errand/-DONE-CANCELLED")
+            (tags "-@inbox-@errand-SCHEDULED={.+}/!+NEXT")))))
+
+  (defun org-archive-done-tasks ()
+    (interactive)
+    (org-map-entries
+     (lambda ()
+       (org-archive-subtree)
+       (setq org-map-continue-from (outline-previous-heading)))
+     "/DONE" 'tree))
+
+  (defun org-archive-cancelled-tasks ()
+    (interactive)
+    (org-map-entries
+     (lambda ()
+       (org-archive-subtree)
+       (setq org-map-continue-from (outline-previous-heading)))
+     "/CANCELLED" 'tree))
+
+  (defun org-archive-completed-tasks ()
+    (interactive)
+    (org-archive-done-tasks)
+    (org-archive-cancelled-tasks)
+    )
+
+  (setq org-refile-targets '((nil :maxlevel . 1)
+                             (org-agenda-files :maxlevel . 1)))
+
+  (setq org-capture-templates '(("t" "Todo [inbox]" entry
+                                 (file+headline "~/Documents/Org/inbox.org" "Tasks")
+                                 "* TODO %i%?")
+                                ("T" "Tickler" entry
+                                 (file+headline "~/Documents/Org/tickler.org" "Tickler")
+                                 "* %i%? \n %U")))
+
+  (setq org-icalendar-combined-agenda-file "~/Dropbox/Public/hsph.ics")
+  (setq org-icalendar-alarm-time 60)
+  (setq org-agenda-default-appointment-duration 60)
+
+
   (beacon-mode 1)
 
   ;; ycmd
@@ -364,7 +455,7 @@ you should place your code here."
   ;;  ((spacemacs/system-is-linux)
   ;;   (set-variable 'ycmd-server-command '("python2" "/home/stel/ycmd/ycmd")))
   ;;  ((spacemacs/system-is-mac)
-  ;;   (set-variable 'ycmd-server-command '("python3" "~/Documents/github/ycmd/ycmd"))))
+  ;;   (set-variable 'ycmd-server-command '("python3" "~//github/ycmd/ycmd"))))
   ;; (setq ycmd-request-message-level -1)
   ;; (set-variable 'ycmd-global-config "/home/stel/.ycm_extra_conf.py")
 
@@ -445,7 +536,7 @@ you should place your code here."
                         ((string-match "[.]cc" buffer-file-name) (stels-source-format))
                         ((string-match "[.]cpp" buffer-file-name) (stels-source-format))
                         )
-                  ))
+                    ))
 
 
   (global-set-key [C-M-tab] 'clang-format-region)
@@ -455,6 +546,7 @@ you should place your code here."
  ;; '(safe-local-variable-values (quote ((TeX-command-extra-options . "-shell-escape")))))
 
   (setq-default helm-make-build-dir "build")
+  (put 'helm-make-build-dir 'safe-local-variable 'stringp)
 
 
   )
