@@ -21,7 +21,7 @@ values."
    ;; variable `dotspacemacs-configuration-layers' to install it.
    ;; (default 'unused)
    dotspacemacs-enable-lazy-installation 'unused
-   ;; If non-nil then Spacemacs will ask#include <iostream>
+   ;; If non-nil then Spacemacs will ask
    ;; a layer lazily. (default t)
    dotspacemacs-ask-for-lazy-installation t
    ;; If non-nil layers with lazy install support are lazy installed.
@@ -31,7 +31,6 @@ values."
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
    '(
-     javascript
      react
      html
      ;; ----------------------------------------------------------------
@@ -75,27 +74,53 @@ values."
      semantic
      shell
      ;; spell-checking
-     syntax-checking
+     (syntax-checking :variables syntax-checking-enable-by-default nil)
      swift
      lua
      cscope
      version-control
      gtags
+     react
      shaders
      haskell
+     helm
+     javascript
+     ;; (javascript :variables
+     ;;             tern-command '("node" "/usr/bin/tern")
+     ;;             js2-basic-offset 2
+     ;;             js-indent-level 2
+     ;;             js2-strict-missing-semi-warning nil
+     ;;             javascript-disable-tern-port-files nil
+     ;;             js2-missing-semi-one-line-override nil)
+     (html :variables
+           css-indent-offset 2
+           web-mode-markup-indent-offset 2
+           web-mode-css-indent-offset 2
+           web-mode-code-indent-offset 2
+           web-mode-attr-indent-offset 2)
      ;;ycmd
-  )
+     )
    ;; List of additional packages that will be installed without being
    ;; wrapped in a layer. If you need some configuration for these
    ;; packages, then consider creating a layer. You can also put the
    ;; configuration in `dotspacemacs/user-config'.
    dotspacemacs-additional-packages '(beacon
                                       glsl-mode
+                                      dotenv-mode
+                                      smart-backspace
                                       ;;company-ycmd
                                       disaster
                                       all-the-icons
                                       speed-type
-                                      prettier-js
+                                      rjsx-mode
+                                      nodejs-repl
+                                      less-css-mode
+                                      scss-mode
+                                      company-tern
+                                      flycheck
+                                      flycheck-package
+                                      flycheck-flow
+                                      add-node-modules-path
                                       doom-themes)
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
@@ -170,20 +195,20 @@ values."
                          ;; dracula
                          ;; doom-peacock
                          ;; doom-spacegrey
-                          spacemacs-dark
+                         spacemacs-dark
                          ;; spacemacs-light
                          ;; solarized-light
                          ;; solarized-dark
                          ;; leuven
                          ;; monoka
                          ;; zenburn
-                        )
+                         )
    ;; If non nil the cursor color matches the state color in GUI Emacs.
    dotspacemacs-colorize-cursor-according-to-state t
    ;; Default font, or prioritized list of fonts. `powerline-scale' allows to
    ;; quickly tweak the mode-line size to make separators look not too crappy.
    ;; SF Mono
-   dotspacemacs-default-font '("SF Mono"
+   dotspacemacs-default-font '("Source Code Pro"
                                :size 16
                                :weight medium
                                :width normal
@@ -341,7 +366,31 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (load-file "~/.emacs.d/elpa/dash-20180910.1856/dash.el")
   ;; (load-file "~/.emacs.d/elpa/autothemer-20180920.923/autothemer.el")
 
-  )
+  (setq-default
+   js2-basic-offset 2
+   css-indent-offset 2
+   web-mode-markup-indent-offset 2
+   web-mode-css-indent-offset 2
+   web-mode-code-indent-offset 2
+   web-mode-attr-indent-offset 2
+   js-indent-level 2
+   js2-strict-trailing-comma-warning nil
+   )
+
+  ;; Helper to add project-specific node_modules to the PATH
+  (defun add-node-modules-path ()
+    (let* ((root (locate-dominating-file
+                  (or (buffer-file-name) default-directory)
+                  "node_modules"))
+           (path (and root
+                      (expand-file-name "node_modules/.bin/" root))))
+      (if root
+          (progn
+            (make-local-variable 'exec-path)
+            (add-to-list 'exec-path path)
+            (message "added node_modules to exec-path"))
+        (message "node_modules not found"))))
+ )
 
 (defun dotspacemacs/user-config ()
   "Configuration function for user code.
@@ -351,6 +400,8 @@ This is the place where most of your configurations should be done. Unless it is
 explicitly specified that a variable should be set before a package is loaded,
 you should place your code here."
   ;; misc
+  (ido-mode -1)
+
   (setq-default sp-escape-quotes-after-insert nil)
   (setq-default
    beacon-blink-when-focused t
@@ -362,7 +413,6 @@ you should place your code here."
     '(progn
        (add-hook 'web-mode-hook #'add-node-modules-path)))
 
-  (require 'prettier-js)
   (setq prettier-js-command "prettier-eslint_d")
 
   (setq neo-theme 'icons)
@@ -371,8 +421,14 @@ you should place your code here."
 
   (require 'disaster)
 
-    ;; set powerline otions
+  ;; set powerline otions
   (setq powerline-default-separator 'arrow)
+
+
+  ;; stop default linter - use ESLint linter as part of FlyCheck
+  (setq js2-mode-show-parse-errors nil js2-mode-show-strict-warnings nil)
+  (eval-after-load 'js2-mode
+    '(add-hook 'js2-mode-hook #'add-node-modules-path))
 
   (setq undo-tree-auto-save-history t
         undo-tree-history-directory-alist
@@ -386,7 +442,7 @@ you should place your code here."
   (setq ad-redefinition-action 'accept)
   (evil-ex-define-cmd "W[rite]" 'evil-write)
 
- ;; org-mode configuration
+  ;; org-mode configuration
   (setq org-agenda-files
         (append '("~/Org/hsph.org"
                   "~/Org/meetings.org"
@@ -413,7 +469,7 @@ you should place your code here."
   ;; act as a day planner
   (setq org-agenda-start-on-weekday nil)
 
- ;; stuff for GTD
+  ;; stuff for GTD
   (setq org-agenda-custom-commands
         '(("W" "Weekly Review"
            ((agenda "" ((org-agenda-span 7)
@@ -473,7 +529,21 @@ you should place your code here."
 
 
   (beacon-mode 1)
-  (ido-mode -1)
+ 
+  (eval-after-load 'js2-mode
+    '(add-hook 'js2-mode-hook #'add-node-modules-path))
+  (setq flycheck-display-errors-function 'flycheck-display-error-messages-unless-error-list)
+  (setq frame-title-format
+        (concat "%b - emacs@" (system-name)))
+  (setq neo-theme 'icons)
+  (with-eval-after-load 'rjsx-mode
+    (add-hook 'rjsx-mode-hook 'flycheck-mode)
+    (with-eval-after-load 'flycheck
+      (require 'flycheck-flow)
+      (flycheck-add-mode 'javascript-flow 'rjsx-mode))
+    (evil-define-key 'normal rjsx-mode-map (kbd "C-d") 'rjsx-delete-creates-full-tag))
+
+  (add-to-list 'auto-mode-alist '("components\\/.*\\.js\\'" . rjsx-mode))
 
   ;; ycmd
   ;; (cond
@@ -489,8 +559,17 @@ you should place your code here."
   (setq company-idle-delay 0)
   (setq ac-delay 0)
 
+  ;; rjsx
+  (add-to-list 'auto-mode-alist '("\\.js\\'" . rjsx-mode))
+  (add-to-list 'auto-mode-alist '("\\.jsx\\'" . rjsx-mode))
+  (add-to-list 'auto-mode-alist '("\\.react.js\\'" . rjsx-mode))
+  (add-to-list 'auto-mode-alist '("\\index.android.js\\'" . rjsx-mode))
+  (add-to-list 'auto-mode-alist '("\\index.ios.js\\'" . rjsx-mode))
+  (add-to-list 'magic-mode-alist '("/\\*\\* @jsx React\\.DOM \\*/" . rjsx-mode))
+  (add-to-list 'magic-mode-alist '("^import React" . rjsx-mode))
 
-  ;; ; c-c++
+
+  ;;c-c++
   (add-hook 'c++-mode-hook (lambda ()
                              (setq flycheck-checker 'c/c++-clang)
                              (setq flycheck-gcc-language-standard "c++17")
@@ -531,78 +610,78 @@ you should place your code here."
     (when c-c++-enable-clang-support
       (spacemacs/add-to-hooks 'c-c++/load-clang-args '(c-mode-hook c++-mode-hook))))
 
-   (add-hook 'c++-mode-hook
+  (add-hook 'c++-mode-hook
             (lambda ()
               ;; quick compilation
               (set (make-local-variable 'compile-command)
                    (concat "g++ -std=c++1z -Wall " buffer-file-name " && ./a.out"))
               ;; (push 'company-semantic company-backends)
-              (setq company-clang-arguments '("-std=c++1z"))
-              (setq flycheck-clang-language-standard "c++1z")
+              ;;(setq company-clang-arguments '("-std=c++1z"))
+              ;;(setq flycheck-clang-language-standard "c++1z")
               (add-to-list 'company-c-headers-path-system
                            "/usr/include/c++/8.2.1/")
               ))
 
-   (add-hook 'c-mode-common-hook
-             (lambda ()
-                (defun stels-header-format ()
-                   "Format the given file as a header file."
-				     (interactive)
-				     (setq BaseFileName (file-name-sans-extension (file-name-nondirectory buffer-file-name)))
-				     (setq BaseFileNameExt (file-name-nondirectory buffer-file-name))
-				     (insert "#if !defined(")
-				     (push-mark)
-				     (insert BaseFileName)
-				     (upcase-region (mark) (point))
-				     (pop-mark)
-				     (insert "_H)\n")
-				     (insert "/* ========================================================================\n")
-				     (insert (format "   $File: %s $\n" BaseFileNameExt))
-				     (insert (format "   $Date: %s $\n" (current-time-string)))
-				     (insert "   $Revision: $\n")
-				     (insert "   $Creator: Ro Stelmach $\n")
-				     (insert "   $Notice: (C) Copyright 2019 by Ro Orestis Stelmach. All Rights Reserved. $\n")
-				     (insert "   ======================================================================== */\n")
-				     (insert "\n")
-				     (insert "#define ")
-				     (push-mark)
-				     (insert BaseFileName)
-				     (upcase-region (mark) (point))
-				     (pop-mark)
-				     (insert "_H\n")
-     (insert "#endif")
-                  )
+  (add-hook 'c-mode-common-hook
+            (lambda ()
+              (defun stels-header-format ()
+                "Format the given file as a header file."
+                (interactive)
+                (setq BaseFileName (file-name-sans-extension (file-name-nondirectory buffer-file-name)))
+                (setq BaseFileNameExt (file-name-nondirectory buffer-file-name))
+                (insert "#if !defined(")
+                (push-mark)
+                (insert BaseFileName)
+                (upcase-region (mark) (point))
+                (pop-mark)
+                (insert "_H)\n")
+                (insert "/* ========================================================================\n")
+                (insert (format "   $File: %s $\n" BaseFileNameExt))
+                (insert (format "   $Date: %s $\n" (current-time-string)))
+                (insert "   $Revision: $\n")
+                (insert "   $Creator: Ro Stelmach $\n")
+                (insert "   $Notice: (C) Copyright 2019 by Ro Orestis Stelmach. All Rights Reserved. $\n")
+                (insert "   ======================================================================== */\n")
+                (insert "\n")
+                (insert "#define ")
+                (push-mark)
+                (insert BaseFileName)
+                (upcase-region (mark) (point))
+                (pop-mark)
+                (insert "_H\n")
+                (insert "#endif")
+                )
 
-                  (defun stels-source-format ()
-                    "Format the given file as a source file."
-                    (interactive)
-                    (setq BaseFileName (file-name-sans-extension (file-name-nondirectory buffer-file-name)))
-                    (setq BaseFileNameExt (file-name-nondirectory buffer-file-name))
-                    (insert "/* ========================================================================\n")
-                    (insert (format "   $File: %s $\n" BaseFileNameExt))
-				    (insert (format "   $Date: %s $\n" (current-time-string)))
-                    (insert "   $Revision: $\n")
-                    (insert "   $Creator: Ro Stelmach $\n")
-                    (insert "   $Notice: (C) Copyright 2019 by Ro Orestis Stelmach. All Rights Reserved. $\n")
-                    (insert "   ======================================================================== */\n")
-                  )
+              (defun stels-source-format ()
+                "Format the given file as a source file."
+                (interactive)
+                (setq BaseFileName (file-name-sans-extension (file-name-nondirectory buffer-file-name)))
+                (setq BaseFileNameExt (file-name-nondirectory buffer-file-name))
+                (insert "/* ========================================================================\n")
+                (insert (format "   $File: %s $\n" BaseFileNameExt))
+                (insert (format "   $Date: %s $\n" (current-time-string)))
+                (insert "   $Revision: $\n")
+                (insert "   $Creator: Ro Stelmach $\n")
+                (insert "   $Notice: (C) Copyright 2019 by Ro Orestis Stelmach. All Rights Reserved. $\n")
+                (insert "   ======================================================================== */\n")
+                )
 
-                  (cond ((file-exists-p buffer-file-name) t)
-                        ((string-match "[.]h" buffer-file-name) (stels-header-format))
-                        ((string-match "[.]hh" buffer-file-name) (stels-header-format))
-                        ((string-match "[.]hpp" buffer-file-name) (stels-header-format))
-                        ((string-match "[.]c" buffer-file-name) (stels-source-format))
-                        ((string-match "[.]cc" buffer-file-name) (stels-source-format))
-                        ((string-match "[.]cpp" buffer-file-name) (stels-source-format))
-                        )
-                    ))
+              (cond ((file-exists-p buffer-file-name) t)
+                    ((string-match "[.]h" buffer-file-name) (stels-header-format))
+                    ((string-match "[.]hh" buffer-file-name) (stels-header-format))
+                    ((string-match "[.]hpp" buffer-file-name) (stels-header-format))
+                    ((string-match "[.]c" buffer-file-name) (stels-source-format))
+                    ((string-match "[.]cc" buffer-file-name) (stels-source-format))
+                    ((string-match "[.]cpp" buffer-file-name) (stels-source-format))
+                    )
+              ))
 
 
   (global-set-key [C-M-tab] 'clang-format-region)
   (add-hook 'c++-mode-hook 'clang-format-bindings)
   (defun clang-format-bindings ()
     (define-key c++-mode-map [tab] 'clang-format-buffer))
- ;; '(safe-local-variable-values (quote ((TeX-command-extra-options . "-shell-escape")))))
+  ;; '(safe-local-variable-values (quote ((TeX-command-extra-options . "-shell-escape")))))
 
   (setq-default helm-make-build-dir "build")
   (put 'helm-make-build-dir 'safe-local-variable 'stringp)
@@ -621,7 +700,7 @@ you should place your code here."
    ["#0a0814" "#f2241f" "#67b11d" "#b1951d" "#4f97d7" "#a31db1" "#28def0" "#b2b2b2"])
  '(package-selected-packages
    (quote
-    (prettier-js skewer-mode json-snatcher json-reformat multiple-cursors js2-mode tern doom-losvkem-theme gruvbox-theme-theme intero hlint-refactor hindent helm-hoogle haskell-snippets flycheck-haskell company-ghci company-ghc ghc haskell-mode company-cabal cmm-mode company-glsl treepy graphql all-the-icons memoize glsl-mode doom-city-lights-theme let-alist doom-themes wakatime-mode beacon seq flycheck-ycmd company-ycmd ycmd request-deferred deferred org-category-capture alert log4e gntp dash-functional haml-mode markdown-mode gitignore-mode flyspell-correct flycheck magit magit-popup git-commit ghub with-editor simple-httpd web-completion-data pos-tip company yasnippet auto-complete mmt xcscope zeal-at-point yapfify unfill swift-mode stickyfunc-enhance srefactor reveal-in-osx-finder ranger pyvenv pytest pyenv-mode py-isort pip-requirements pbcopy osx-trash osx-dictionary org-ref pdf-tools key-chord ivy tablist mwim magit-gh-pulls live-py-mode launchctl hy-mode helm-pydoc helm-dash helm-bibtex parsebib gmail-message-mode ham-mode html-to-markdown github-search github-clone github-browse-file git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter gist gh marshal logito pcache ht flymd erc-yt erc-view-log erc-social-graph erc-image erc-hl-nicks engine-mode elfeed-web elfeed-org elfeed-goodies ace-jump-mode noflet elfeed edit-server diff-hl deft cython-mode company-auctex company-anaconda biblio biblio-core auctex anaconda-mode pythonic zenburn-theme zen-and-art-theme xterm-color ws-butler winum white-sand-theme which-key web-mode web-beautify volatile-highlights vimrc-mode vi-tilde-fringe uuidgen use-package underwater-theme ujelly-theme typit twilight-theme twilight-bright-theme twilight-anti-bright-theme toxi-theme toc-org tao-theme tangotango-theme tango-plus-theme tango-2-theme tagedit sunny-day-theme sudoku sublime-themes subatomic256-theme subatomic-theme speed-type spaceline-all-the-icons spacegray-theme soothe-theme solarized-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme smeargle smart-backspace slim-mode shell-pop seti-theme scss-mode sass-mode rjsx-mode reverse-theme restart-emacs rebecca-theme rainbow-mode rainbow-identifiers rainbow-delimiters railscasts-theme quickrun purple-haze-theme pug-mode professional-theme popwin planet-theme phoenix-dark-pink-theme phoenix-dark-mono-theme persp-mode pcre2el paradox pacmacs orgit organic-green-theme org-projectile org-present org-pomodoro org-mime org-download org-bullets open-junk-file omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme nodejs-repl noctilux-theme neotree naquadah-theme mustang-theme multi-term move-text monokai-theme monochrome-theme molokai-theme moe-theme mmm-mode minimal-theme material-theme markdown-toc majapahit-theme magit-gitflow madhat2r-theme macrostep lush-theme lua-mode lorem-ipsum livid-mode linum-relative link-hint light-soap-theme less-css-mode kibit-helper json-mode js2-refactor js-doc jbeans-theme jazz-theme ir-black-theme inkpot-theme indent-guide imenu-list hungry-delete htmlize hl-todo hl-sexp highlight-parentheses highlight-numbers highlight-indentation heroku-theme hemisu-theme helm-themes helm-swoop helm-projectile helm-mode-manager helm-make helm-gtags helm-gitignore helm-flx helm-descbinds helm-css-scss helm-cscope helm-company helm-c-yasnippet helm-ag hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme google-translate golden-ratio gnuplot gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link gh-md ggtags gandalf-theme fuzzy flyspell-correct-helm flycheck-pos-tip flycheck-package flycheck-flow flx-ido flatui-theme flatland-theme fill-column-indicator farmhouse-theme fancy-battery eyebrowse expand-region exotica-theme exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-args evil-anzu eval-sexp-fu espresso-theme eshell-z eshell-prompt-extras esh-help emmet-mode elisp-slime-nav dumb-jump dracula-theme django-theme disaster diminish define-word darktooth-theme darkokai-theme darkmine-theme darkburn-theme dakrone-theme dactyl-mode cyberpunk-theme company-web company-tern company-statistics company-quickhelp company-c-headers column-enforce-mode color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized color-identifiers-mode coffee-mode cmake-mode clues-theme clean-aindent-mode clang-format cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme auto-yasnippet auto-highlight-symbol auto-dictionary auto-compile apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes aggressive-indent afternoon-theme adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell 2048-game))))
+    (add-node-modules-path package-lint dotenv-mode prettier-js skewer-mode json-snatcher json-reformat multiple-cursors js2-mode tern doom-losvkem-theme gruvbox-theme-theme intero hlint-refactor hindent helm-hoogle haskell-snippets flycheck-haskell company-ghci company-ghc ghc haskell-mode company-cabal cmm-mode company-glsl treepy graphql all-the-icons memoize glsl-mode doom-city-lights-theme let-alist doom-themes wakatime-mode beacon seq flycheck-ycmd company-ycmd ycmd request-deferred deferred org-category-capture alert log4e gntp dash-functional haml-mode markdown-mode gitignore-mode flyspell-correct flycheck magit magit-popup git-commit ghub with-editor simple-httpd web-completion-data pos-tip company yasnippet auto-complete mmt xcscope zeal-at-point yapfify unfill swift-mode stickyfunc-enhance srefactor reveal-in-osx-finder ranger pyvenv pytest pyenv-mode py-isort pip-requirements pbcopy osx-trash osx-dictionary org-ref pdf-tools key-chord ivy tablist mwim magit-gh-pulls live-py-mode launchctl hy-mode helm-pydoc helm-dash helm-bibtex parsebib gmail-message-mode ham-mode html-to-markdown github-search github-clone github-browse-file git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter gist gh marshal logito pcache ht flymd erc-yt erc-view-log erc-social-graph erc-image erc-hl-nicks engine-mode elfeed-web elfeed-org elfeed-goodies ace-jump-mode noflet elfeed edit-server diff-hl deft cython-mode company-auctex company-anaconda biblio biblio-core auctex anaconda-mode pythonic zenburn-theme zen-and-art-theme xterm-color ws-butler winum white-sand-theme which-key web-mode web-beautify volatile-highlights vimrc-mode vi-tilde-fringe uuidgen use-package underwater-theme ujelly-theme typit twilight-theme twilight-bright-theme twilight-anti-bright-theme toxi-theme toc-org tao-theme tangotango-theme tango-plus-theme tango-2-theme tagedit sunny-day-theme sudoku sublime-themes subatomic256-theme subatomic-theme speed-type spaceline-all-the-icons spacegray-theme soothe-theme solarized-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme smeargle smart-backspace slim-mode shell-pop seti-theme scss-mode sass-mode rjsx-mode reverse-theme restart-emacs rebecca-theme rainbow-mode rainbow-identifiers rainbow-delimiters railscasts-theme quickrun purple-haze-theme pug-mode professional-theme popwin planet-theme phoenix-dark-pink-theme phoenix-dark-mono-theme persp-mode pcre2el paradox pacmacs orgit organic-green-theme org-projectile org-present org-pomodoro org-mime org-download org-bullets open-junk-file omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme nodejs-repl noctilux-theme neotree naquadah-theme mustang-theme multi-term move-text monokai-theme monochrome-theme molokai-theme moe-theme mmm-mode minimal-theme material-theme markdown-toc majapahit-theme magit-gitflow madhat2r-theme macrostep lush-theme lua-mode lorem-ipsum livid-mode linum-relative link-hint light-soap-theme less-css-mode kibit-helper json-mode js2-refactor js-doc jbeans-theme jazz-theme ir-black-theme inkpot-theme indent-guide imenu-list hungry-delete htmlize hl-todo hl-sexp highlight-parentheses highlight-numbers highlight-indentation heroku-theme hemisu-theme helm-themes helm-swoop helm-projectile helm-mode-manager helm-make helm-gtags helm-gitignore helm-flx helm-descbinds helm-css-scss helm-cscope helm-company helm-c-yasnippet helm-ag hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme google-translate golden-ratio gnuplot gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link gh-md ggtags gandalf-theme fuzzy flyspell-correct-helm flycheck-pos-tip flycheck-package flycheck-flow flx-ido flatui-theme flatland-theme fill-column-indicator farmhouse-theme fancy-battery eyebrowse expand-region exotica-theme exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-args evil-anzu eval-sexp-fu espresso-theme eshell-z eshell-prompt-extras esh-help emmet-mode elisp-slime-nav dumb-jump dracula-theme django-theme disaster diminish define-word darktooth-theme darkokai-theme darkmine-theme darkburn-theme dakrone-theme dactyl-mode cyberpunk-theme company-web company-tern company-statistics company-quickhelp company-c-headers column-enforce-mode color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized color-identifiers-mode coffee-mode cmake-mode clues-theme clean-aindent-mode clang-format cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme auto-yasnippet auto-highlight-symbol auto-dictionary auto-compile apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes aggressive-indent afternoon-theme adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell 2048-game))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
